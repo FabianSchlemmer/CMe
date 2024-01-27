@@ -1,0 +1,5 @@
+﻿int main()
+{
+  	__stdout("Hello, world!\n");
+	return 0;
+}
