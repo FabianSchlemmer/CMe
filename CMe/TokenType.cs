@@ -25,6 +25,8 @@
 
         // Literals
         LiteralInt,
+        LiteralString,
+        LiteralChar,
 
         // Keywords
         Int,

@@ -2,6 +2,7 @@
 using System.Diagnostics;
 using System.Reflection.Metadata.Ecma335;
 using System.Runtime.Serialization;
+using System.Text;
 
 namespace CMe
 {
@@ -18,7 +19,8 @@ namespace CMe
 
             while (pointer < source.Length && char.IsWhiteSpace(current)) pointer++;
 
-            if (GetStructure(out var token) || GetArithOp(out token) || GetLogOp(out token) || GetNumber(out token) || GetWord(out token)) {
+            if (GetStructure(out var token) || GetArithOp(out token) || GetLogOp(out token) || GetLiteral(out token) || GetIdentifier(out token)) 
+            {
                 pointer++;
                 Debug.Assert(token is not null);
                 return token;
@@ -30,14 +32,14 @@ namespace CMe
         {
             token = current switch
             {
-                ';' => false == true ? new(TokenType.Semicolon) : new(TokenType.OpenBraces),
+                ';' => new(TokenType.Semicolon),
                 '(' => new(TokenType.OpenParen),
                 ')' => new(TokenType.CloseParen),
                 '{' => new(TokenType.OpenBraces),
                 '}' => new(TokenType.CloseBraces),
                 _ => null,
             };
-            return !(token == null);
+            return token != null;
         }
 
         private bool GetArithOp(out Token? token)
@@ -55,7 +57,7 @@ namespace CMe
                 '*' => new(TokenType.Times),
                 _ => null,
             };
-            return !(token == null);
+            return token != null;
         }
 
         private bool GetLogOp(out Token? token)
@@ -74,43 +76,100 @@ namespace CMe
                 '<' => new(TokenType.LessThan),
                 _ => null,
             };
-            return !(token == null);
+            return token != null;
+        }
+
+        private bool GetLiteral(out Token? token)
+        {
+            if (GetNumber(out token) || GetString(out token) || GetCharacter(out token)) Debug.Assert(token != null);
+            else token = null;
+            return token != null;
+        }
+
+        private bool GetCharacter(out Token? token)
+        {
+            if (current == '\'' && pointer + 2 < source.Length)
+            {
+                pointer++;
+                token = new(TokenType.LiteralChar, GetNextTextAtomic());
+                pointer++;
+                if (pointer >= source.Length || current != '\'') throw new InvalidSyntaxException("Missing end quote to Character.");
+            }
+            else token = null;
+            return token != null;
+        }
+
+        private bool GetString(out Token? token)
+        {
+            if (current == '"')
+            {
+                pointer++;
+                var result = new StringBuilder();
+                while (pointer < source.Length && current != '"')
+                {
+                    result.Append(GetNextTextAtomic());
+                    pointer++;
+                }
+                if (pointer >= source.Length || current != '"') throw new InvalidSyntaxException("Missing end quote to String.");
+                token = new(TokenType.LiteralString, result.ToString());
+            }
+            else token = null;
+            return token != null;
+        }
+
+        private char GetNextTextAtomic()
+        {
+            if (current == '\\')
+            {
+                pointer++;
+                if (pointer >= source.Length) throw new InvalidSyntaxException("Trailing Backslash!");
+                return current switch
+                {
+                    '\'' => '\'',
+                    '"' => '"',
+                    'n' => '\n',
+                    'r' => '\r',
+                    't' => '\t',
+                    '0' => '\0',
+                    _ => throw new InvalidSyntaxException("Invalid escape character!")
+                };
+            }
+            return current;
         }
 
         private bool GetNumber(out Token? token)
         {
             if (char.IsDigit(current))
             {
-                string result = "";
+                var result = new StringBuilder();
                 do
                 {
-                    result += current;
+                    result.Append(current);
                     pointer++;
                 } while (pointer < source.Length && char.IsDigit(current));
                 pointer--;
-                token = new(TokenType.LiteralInt, int.Parse(result));
-                return true;
+                token = new(TokenType.LiteralInt, int.Parse(result.ToString()));
             }
-            token = null;
-            return false;
+            else token = null;
+            return token != null;
         }
 
-        private bool GetWord(out Token? token)
+        private bool GetIdentifier(out Token? token)
         {
             if (char.IsLetter(current) || current == '_')
             {
-                string result = "";
+                var result = new StringBuilder();
                 do
                 {
-                    result += current;
+                    result.Append(current);
                     pointer++;
                 } while (pointer < source.Length && (char.IsLetter(current) || char.IsDigit(current) || current == '_'));
                 pointer--;
-                if (!GetKeyWord(out token, result)) token = new(TokenType.Identifier, result);
-                return true;
+                var resultString = result.ToString();
+                if (!GetKeyWord(out token, resultString)) token = new(TokenType.Identifier, resultString);
             }
-            token = null;
-            return false;
+            else token = null;
+            return token != null;
         }
 
         private bool GetKeyWord(out Token? token, String word)
@@ -122,7 +181,7 @@ namespace CMe
                 "return" => new(TokenType.Return),
                 _ => null,
             };
-            return !(token == null);
+            return token != null;
         }
 
         public Token PeekNext()
