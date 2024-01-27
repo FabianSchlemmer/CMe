@@ -1,4 +1,6 @@
-﻿using System.Diagnostics;
+﻿using CMe.AST;
+using System.Diagnostics;
+using System.Reflection.Metadata.Ecma335;
 using System.Runtime.Serialization;
 
 namespace CMe
@@ -26,73 +28,53 @@ namespace CMe
 
         private bool GetStructure(out Token? token)
         {
-            switch (current)
+            token = current switch
             {
-                case ';':
-                    token = new(TokenType.Semicolon);
-                    break;
-                case '(':
-                    token = new(TokenType.OpenParen);
-                    break;
-                case ')':
-                    token = new(TokenType.CloseParen);
-                    break;
-                case '{':
-                    token = new(TokenType.OpenBraces);
-                    break;
-                case '}':
-                    token = new(TokenType.CloseBraces);
-                    break;
-                default:
-                    token = null;
-                    return false;
-            }
-            return true;            
+                ';' => false == true ? new(TokenType.Semicolon) : new(TokenType.OpenBraces),
+                '(' => new(TokenType.OpenParen),
+                ')' => new(TokenType.CloseParen),
+                '{' => new(TokenType.OpenBraces),
+                '}' => new(TokenType.CloseBraces),
+                _ => null,
+            };
+            return !(token == null);
         }
 
         private bool GetArithOp(out Token? token)
         {
-            switch (current)
+            if (current == '+' && pointer + 1 < source.Length && source[pointer + 1] == '+')
             {
-                case '+':
-                    if (pointer + 1 < source.Length && source[pointer + 1] == '+')
-                    {
-                        token = new(TokenType.PlusPlus);
-                        pointer++;
-                    }
-                    else token = new(TokenType.Plus);
-                    break;
-                case '*':
-                    token = new(TokenType.Times);
-                    break;
-                default:
-                    token = null;
-                    return false;
+                token = new(TokenType.PlusPlus);
+                pointer++;
+                return true;
             }
-            return true;
+
+            token = current switch
+            {
+                '+' => new(TokenType.Plus),
+                '*' => new(TokenType.Times),
+                _ => null,
+            };
+            return !(token == null);
         }
 
         private bool GetLogOp(out Token? token)
         {
-            switch (current)
+            if (current == '=' && pointer + 1 < source.Length && source[pointer + 1] == '=')
             {
-                case '=':
-                    if (pointer + 1 < source.Length && source[pointer + 1] == '=')
-                    {
-                        // todo: Add TokenType logical equal; for now returning false
-                        token = null;
-                        return false;
-                    }
-                    else token = new(TokenType.Assignment);
-                    break;
-                case '<':
-                    token = new(TokenType.LessThan);
-                    break;
-                default:
-                    token = null;
-                    return false;
+                // todo: Add TokenType logical equal; for now returning false
+                token = null;
+                pointer++;
+                return false;
             }
-            return true;
+
+            token = current switch
+            {
+                '=' => new(TokenType.Assignment),
+                '<' => new(TokenType.LessThan),
+                _ => null,
+            };
+            return !(token == null);
         }
 
         private bool GetNumber(out Token? token)
@@ -133,22 +115,14 @@ namespace CMe
 
         private bool GetKeyWord(out Token? token, String word)
         {
-            switch (word)
+            token = word switch
             {
-                case "for":
-                    token = new(TokenType.For);
-                    break;
-                case "int":
-                    token = new(TokenType.Int);
-                    break;
-                case "return":
-                    token = new(TokenType.Return);
-                    break;
-                default:
-                    token = null;
-                    return false;
-            }
-            return true;
+                "for" => new(TokenType.For),
+                "int" => new(TokenType.Int),
+                "return" => new(TokenType.Return),
+                _ => null,
+            };
+            return !(token == null);
         }
 
         public Token PeekNext()
