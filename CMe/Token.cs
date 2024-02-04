@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 
 namespace CMe
 {
@@ -10,7 +11,8 @@ namespace CMe
 
         public T ValueAs<T>()
         {
-            throw new NotImplementedException();
+            Debug.Assert(Value != null);
+            return (T)Value;
         }
 
         public override bool Equals(object? obj)
@@ -32,6 +34,11 @@ namespace CMe
         public override int GetHashCode()
         {
             return HashCode.Combine(Type, Value);
+        }
+
+        public override string ToString()
+        {
+            return $"TokenType: {Type}; Value: {Value}.";
         }
     }
 }

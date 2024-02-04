@@ -12,6 +12,7 @@
         CloseParen,
         OpenBraces,
         CloseBraces,
+        Comma,
 
         // Binary Operators
         // Arithmetic
@@ -30,6 +31,13 @@
 
         // Keywords
         Int,
+        Char,
+        Void,
+        Float,
+        Double,
+        Struct,
+        Enum,
+        TypeDef,
         Return,
         For,
     }

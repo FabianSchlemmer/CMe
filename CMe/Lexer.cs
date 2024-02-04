@@ -15,9 +15,9 @@ namespace CMe
 
         public Token NextTok()
         {
-            if (source.Length <= pointer) return new(TokenType.EOF);
-
             while (pointer < source.Length && char.IsWhiteSpace(current)) pointer++;
+
+            if (source.Length <= pointer) return new(TokenType.EOF);
 
             if (GetStructure(out var token) || GetArithOp(out token) || GetLogOp(out token) || GetLiteral(out token) || GetIdentifier(out token)) 
             {
@@ -125,6 +125,7 @@ namespace CMe
                 if (pointer >= source.Length) throw new InvalidSyntaxException("Trailing Backslash!");
                 return current switch
                 {
+                    '\\' => '\\',
                     '\'' => '\'',
                     '"' => '"',
                     'n' => '\n',
@@ -178,6 +179,10 @@ namespace CMe
             {
                 "for" => new(TokenType.For),
                 "int" => new(TokenType.Int),
+                "char" => new(TokenType.Char),
+                "void" => new(TokenType.Void),
+                "float" => new(TokenType.Float),
+                "double" => new(TokenType.Double),
                 "return" => new(TokenType.Return),
                 _ => null,
             };
@@ -190,26 +195,6 @@ namespace CMe
             Token token = NextTok();
             pointer = savePointer;
             return token;
-        }
-
-        [Serializable]
-        private class InvalidSyntaxException : Exception
-        {
-            public InvalidSyntaxException()
-            {
-            }
-
-            public InvalidSyntaxException(string? message) : base(message)
-            {
-            }
-
-            public InvalidSyntaxException(string? message, Exception? innerException) : base(message, innerException)
-            {
-            }
-
-            protected InvalidSyntaxException(SerializationInfo info, StreamingContext context) : base(info, context)
-            {
-            }
         }
     }
 }

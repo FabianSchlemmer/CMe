@@ -1,5 +1,5 @@
 ﻿// from: https://www.programiz.com/c-programming/examples/prime-number
-bool is_prime(int num)
+int is_prime(int num)
 {
     int flag = 0;
 

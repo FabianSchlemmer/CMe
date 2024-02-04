@@ -6,5 +6,9 @@ namespace CMe
     public enum TypeKind
     {
         Int,
+        Char,
+        Void,
+        Float,
+        Double,
     }
 }
