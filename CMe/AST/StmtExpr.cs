@@ -6,8 +6,7 @@
         public new static StmtExpr Parse(Lexer lexer)
         {
             var expr = Expr.Parse(lexer);
-            var tok = lexer.NextTok();
-            if (tok.Type != TokenType.Semicolon) throw new ParseException($"Expected end of Statement (;). Got {tok}.");
+            Parser.ExpectToken(lexer, TokenType.Semicolon);
             return new StmtExpr(expr);
         }
 

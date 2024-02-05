@@ -1,4 +1,4 @@
-﻿using System.Collections.Generic;
+﻿using System.Diagnostics;
 
 namespace CMe.AST
 {
@@ -7,21 +7,38 @@ namespace CMe.AST
     {
         public string Name { get { return name; } }
 
-        public static FnDef Parse(TypeKind tk, Lexer lexer)
+        public new static FnDef Parse(Lexer lexer)
         {
-            var identifier = lexer.NextTok();
-            if (identifier.Type != TokenType.Identifier) throw new ParseException($"Expected Identifier. Got {identifier}");
-            var parameters = FnParam.ParseAll(lexer);
-            var braces = lexer.NextTok();
-            if (braces.Type != TokenType.OpenBraces) throw new ParseException($"Expected Function Body. Got {braces}.");
-            var body = new List<Stmt>();
-            while (lexer.PeekNext().Type != TokenType.CloseBraces)
+            if (!Parser.HasReturnableType(out TypeKind? retType, lexer.NextTok().Type)) throw new ParseException($"Expected Return Type. Got {retType}.");
+            var identifier = Parser.ExpectToken(lexer, TokenType.Identifier);
+
+            Parser.ExpectToken(lexer, TokenType.OpenParen);
+            var parameters = new List<FnParam>();
+
+            // Declaration for while loop condition
+            var next = lexer.PeekNext();
+            while (next.Type != TokenType.CloseParen)
             {
-                var stmt = Stmt.Parse(lexer);
-                body.Add(stmt);
+                parameters.Add(FnParam.Parse(lexer));
+                // Expect Valid next Tokens
+                next = Parser.ExpectToken(lexer, TokenType.Comma, TokenType.CloseParen);
+            }
+            // In case the while loop condition was hit immediately, need to consume the Closing Parenthesis
+            if (parameters.Count == 0) Parser.ExpectToken(lexer, TokenType.CloseParen);
+
+            Parser.ExpectToken(lexer, TokenType.OpenBraces);
+            var body = new List<Stmt>();
+            next = lexer.PeekNext();
+            // An empty body is a valid Function Definition
+            while (next.Type != TokenType.CloseBraces)
+            {
+                body.Add(Stmt.Parse(lexer));
+                next = lexer.PeekNext();
             }
             Parser.ExpectToken(lexer, TokenType.CloseBraces);
-            return new FnDef(tk, identifier.ValueAs<string>(), parameters, body);
+
+            Debug.Assert(retType != null);
+            return new FnDef((TypeKind) retType, identifier.ValueAs<string>(), parameters, body);
         }
 
         public override void Accept(IVisitor visitor)

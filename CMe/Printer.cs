@@ -56,11 +56,11 @@ namespace CMe
             result.Append(Print($"\"{EscapeString(words.Value)}\""));
         }
 
-        private string Print(string s)
+        private string Print(string str)
         {
             var sb = new StringBuilder();
             for (int i = 0; i < indentations; i++) sb.Append(' ');
-            return sb.Append(s).ToString();
+            return sb.Append(str).ToString();
         }
 
         private void IncIndent()

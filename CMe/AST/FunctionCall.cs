@@ -10,6 +10,7 @@
             var ident = Parser.ExpectToken(lexer, TokenType.Identifier);
             Parser.ExpectToken(lexer, TokenType.OpenParen);
             var args = new List<Expr>();
+
             var tok = lexer.PeekNext();
             while (tok.Type != TokenType.CloseParen)
             {
@@ -17,7 +18,7 @@
                 tok = Parser.ExpectToken(lexer, TokenType.Comma, TokenType.CloseParen);
             }
             // if CloseParen was peeked (empty args)
-            if (args.Count == 0) lexer.NextTok();
+            if (args.Count == 0) Parser.ExpectToken(lexer, TokenType.CloseParen);
             return new FunctionCall(ident.ValueAs<string>(), args);
         }
 

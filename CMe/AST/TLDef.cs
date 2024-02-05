@@ -1,6 +1,4 @@
-﻿using System;
-using System.Diagnostics;
-using System.Diagnostics.Metrics;
+﻿using System.Diagnostics;
 
 namespace CMe.AST
 {
@@ -9,13 +7,14 @@ namespace CMe.AST
     {
         public static TLDef Parse(Lexer lexer)
         {
-            var tokT = lexer.NextTok().Type;
-            if (Parser.HasReturnableType(tokT, out var tk))
+            var tokT = lexer.PeekNext().Type;
+            if (Parser.HasReturnableType(out var tk, tokT))
             {
                 Debug.Assert(tk != null);
-                return FnDef.Parse((TypeKind)tk, lexer);
+                return FnDef.Parse(lexer);
             } else
             {
+                // Only recognizing function definitions for the time being
                 throw new ParseException($"Expected Top Level Definition. Got {tokT}.");
             }
         }

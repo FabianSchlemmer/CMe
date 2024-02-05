@@ -1,6 +1,4 @@
 ﻿using CMe.AST;
-using System;
-using System.Runtime.Serialization;
 
 namespace CMe
 {
@@ -16,7 +14,7 @@ namespace CMe
             return program;
         }
 
-        public static bool HasReturnableType(TokenType tt, out TypeKind? tk)
+        public static bool HasReturnableType(out TypeKind? tk, TokenType tt)
         {
             tk = tt switch
             {

@@ -1,6 +1,4 @@
-﻿using System.Reflection.Metadata.Ecma335;
-
-namespace CMe.AST
+﻿namespace CMe.AST
 {
     // Parent of all Statement Types
     public abstract class Stmt : BaseNode

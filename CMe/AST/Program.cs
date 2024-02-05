@@ -1,6 +1,4 @@
-﻿using System.ComponentModel;
-
-namespace CMe.AST
+﻿namespace CMe.AST
 {
     // Holds all TLDefs; Root Node of AST
     public class Program : BaseNode

@@ -18,8 +18,10 @@
         // Arithmetic
         Plus,
         Times,
+
         // Logical
         LessThan,
+        EqualEqual,
 
         // Unary Operators
         PlusPlus,

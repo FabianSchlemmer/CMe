@@ -1,6 +1,4 @@
-﻿using System;
-
-namespace CMe
+﻿namespace CMe
 {
     // Type
     public enum TypeKind

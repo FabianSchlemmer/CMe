@@ -1,7 +1,4 @@
-﻿using CMe.AST;
-using System.Diagnostics;
-using System.Reflection.Metadata.Ecma335;
-using System.Runtime.Serialization;
+﻿using System.Diagnostics;
 using System.Text;
 
 namespace CMe
@@ -9,97 +6,103 @@ namespace CMe
     public class Lexer(string source)
     {
         private int pointer = 0;
-        private readonly List<string> KEYWORDS = ["int", "return", "for"];
 
         private char current { get { return source[pointer]; } }
 
         public Token NextTok()
         {
+            // char.IsWhiteSpace() returns true for new line character (\n)
             while (pointer < source.Length && char.IsWhiteSpace(current)) pointer++;
 
             if (source.Length <= pointer) return new(TokenType.EOF);
 
-            if (GetStructure(out var token) || GetArithOp(out token) || GetLogOp(out token) || GetLiteral(out token) || GetIdentifier(out token)) 
+            // Using the fact, that upon finding the first True, the rest of the condition is not checked, to only run as much code as necessary.
+            // Could use a big switch statement instead, but better overview this way.
+            if (GetStructure(out var tok) || GetArithOp(out tok) || GetLogOp(out tok) || GetLiteral(out tok) || GetIdentifier(out tok)) 
             {
                 pointer++;
-                Debug.Assert(token is not null);
-                return token;
+                Debug.Assert(tok is not null);
+                return tok;
             }
             else throw new InvalidSyntaxException();
         }
 
-        private bool GetStructure(out Token? token)
+        private bool GetStructure(out Token? tok)
         {
-            token = current switch
+            tok = current switch
             {
                 ';' => new(TokenType.Semicolon),
+                ',' => new(TokenType.Comma),
                 '(' => new(TokenType.OpenParen),
                 ')' => new(TokenType.CloseParen),
                 '{' => new(TokenType.OpenBraces),
                 '}' => new(TokenType.CloseBraces),
                 _ => null,
             };
-            return token != null;
+            return tok != null;
         }
 
-        private bool GetArithOp(out Token? token)
+        private bool GetArithOp(out Token? tok)
         {
+            // Handle ++
             if (current == '+' && pointer + 1 < source.Length && source[pointer + 1] == '+')
             {
-                token = new(TokenType.PlusPlus);
+                tok = new(TokenType.PlusPlus);
                 pointer++;
                 return true;
             }
 
-            token = current switch
+            tok = current switch
             {
                 '+' => new(TokenType.Plus),
                 '*' => new(TokenType.Times),
                 _ => null,
             };
-            return token != null;
+            return tok != null;
         }
 
-        private bool GetLogOp(out Token? token)
+        private bool GetLogOp(out Token? tok)
         {
+            // Handle ==
             if (current == '=' && pointer + 1 < source.Length && source[pointer + 1] == '=')
             {
-                // todo: Add TokenType logical equal; for now returning false
-                token = null;
+                tok = new(TokenType.EqualEqual);
                 pointer++;
-                return false;
+                return true;
             }
 
-            token = current switch
+            tok = current switch
             {
                 '=' => new(TokenType.Assignment),
                 '<' => new(TokenType.LessThan),
                 _ => null,
             };
-            return token != null;
+            return tok != null;
         }
 
-        private bool GetLiteral(out Token? token)
+        private bool GetLiteral(out Token? tok)
         {
-            if (GetNumber(out token) || GetString(out token) || GetCharacter(out token)) Debug.Assert(token != null);
-            else token = null;
-            return token != null;
+            // Same Principle as above. Exit condition as soon as one is true.
+            if (GetNumber(out tok) || GetString(out tok) || GetCharacter(out tok)) Debug.Assert(tok != null);
+            else tok = null;
+            return tok != null;
         }
 
-        private bool GetCharacter(out Token? token)
+        private bool GetCharacter(out Token? tok)
         {
+            // Make sure there is enough left of source for this to be a valid character.
             if (current == '\'' && pointer + 2 < source.Length)
             {
                 pointer++;
-                token = new(TokenType.LiteralChar, GetNextTextAtomic());
+                tok = new(TokenType.LiteralChar, GetNextTextAtomic());
                 pointer++;
                 if (pointer >= source.Length || current != '\'') throw new InvalidSyntaxException("Missing end quote to Character.");
             }
-            else token = null;
-            return token != null;
+            else tok = null;
+            return tok != null;
         }
 
-        private bool GetString(out Token? token)
+        private bool GetString(out Token? tok)
         {
             if (current == '"')
             {
@@ -111,12 +114,13 @@ namespace CMe
                     pointer++;
                 }
                 if (pointer >= source.Length || current != '"') throw new InvalidSyntaxException("Missing end quote to String.");
-                token = new(TokenType.LiteralString, result.ToString());
+                tok = new(TokenType.LiteralString, result.ToString());
             }
-            else token = null;
-            return token != null;
+            else tok = null;
+            return tok != null;
         }
 
+        // Handles escape characters and returns current otherwise
         private char GetNextTextAtomic()
         {
             if (current == '\\')
@@ -138,55 +142,63 @@ namespace CMe
             return current;
         }
 
-        private bool GetNumber(out Token? token)
+        private bool GetNumber(out Token? tok)
         {
             if (char.IsDigit(current))
             {
                 var result = new StringBuilder();
+                // Using a do-while instead of a while, because while condition includes char.IsDigit()-check, and we just checked that already
                 do
                 {
                     result.Append(current);
                     pointer++;
                 } while (pointer < source.Length && char.IsDigit(current));
+                // Decrement pointer because it will be incremented to correct spot in NextTok().
                 pointer--;
-                token = new(TokenType.LiteralInt, int.Parse(result.ToString()));
+                tok = new(TokenType.LiteralInt, int.Parse(result.ToString()));
             }
-            else token = null;
-            return token != null;
+            else tok = null;
+            return tok != null;
         }
 
-        private bool GetIdentifier(out Token? token)
+        private bool GetIdentifier(out Token? tok)
         {
+            // Identifiers may start with letters or underscores (_), but not digits or special characters
             if (char.IsLetter(current) || current == '_')
             {
                 var result = new StringBuilder();
+                // Using a do-while because of duplicate condition check
                 do
                 {
                     result.Append(current);
                     pointer++;
+                // Identifiers may contain numbers as long as they are not the first character
                 } while (pointer < source.Length && (char.IsLetter(current) || char.IsDigit(current) || current == '_'));
+                // Decrement pointer because it will be incremented to correct spot in NextTok().
                 pointer--;
                 var resultString = result.ToString();
-                if (!GetKeyWord(out token, resultString)) token = new(TokenType.Identifier, resultString);
+                // Check if our identifier is a KeyWord
+                if (!GetKeyWord(out tok, resultString)) tok = new(TokenType.Identifier, resultString);
             }
-            else token = null;
-            return token != null;
+            else tok = null;
+            return tok != null;
         }
 
-        private bool GetKeyWord(out Token? token, String word)
+        private bool GetKeyWord(out Token? tok, String str)
         {
-            token = word switch
+            tok = str switch
             {
-                "for" => new(TokenType.For),
+                // TODO: Currently Missing (from existing TokenTypes): Struct, Enum, TypeDef
                 "int" => new(TokenType.Int),
                 "char" => new(TokenType.Char),
                 "void" => new(TokenType.Void),
                 "float" => new(TokenType.Float),
                 "double" => new(TokenType.Double),
                 "return" => new(TokenType.Return),
+                "for" => new(TokenType.For),
                 _ => null,
             };
-            return token != null;
+            return tok != null;
         }
 
         public Token PeekNext()
