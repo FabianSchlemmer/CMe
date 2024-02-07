@@ -6,13 +6,21 @@ namespace CMe
     public class Lexer(string source)
     {
         private int pointer = 0;
-
+        private Token? cache = null;
+        
         private char current { get { return source[pointer]; } }
 
         public Token NextTok()
         {
+            // Return peeked token if available
+            if (cache is not null) {
+                var ret = cache;
+                cache = null;
+                return ret;
+            }
+
             // char.IsWhiteSpace() returns true for new line character (\n)
-            while (pointer < source.Length && char.IsWhiteSpace(current)) pointer++;
+            while (pointer < source.Length && (TrySkipComment() || char.IsWhiteSpace(current))) pointer++;
 
             if (source.Length <= pointer) return new(TokenType.EOF);
 
@@ -44,10 +52,15 @@ namespace CMe
 
         private bool GetArithOp(out Token? tok)
         {
-            // Handle ++
+            // Handle ++ and --
             if (current == '+' && pointer + 1 < source.Length && source[pointer + 1] == '+')
             {
                 tok = new(TokenType.PlusPlus);
+                pointer++;
+                return true;
+            } else if (current == '-' && pointer + 1 < source.Length && source[pointer + 1] == '-')
+            {
+                tok = new(TokenType.MinusMinus);
                 pointer++;
                 return true;
             }
@@ -55,7 +68,9 @@ namespace CMe
             tok = current switch
             {
                 '+' => new(TokenType.Plus),
+                '-' => new(TokenType.Minus),
                 '*' => new(TokenType.Times),
+                '/' => new(TokenType.Divide),
                 _ => null,
             };
             return tok != null;
@@ -63,18 +78,30 @@ namespace CMe
 
         private bool GetLogOp(out Token? tok)
         {
-            // Handle ==
-            if (current == '=' && pointer + 1 < source.Length && source[pointer + 1] == '=')
-            {
-                tok = new(TokenType.EqualEqual);
-                pointer++;
-                return true;
-            }
+            // Handle two-character logical operands
+            var s = "";
+            if (pointer + 1 < source.Length) s = current.ToString() + source[pointer + 1];
 
+            tok = s switch
+            {
+                "<=" => new(TokenType.LessThanOrEqual),
+                ">=" => new(TokenType.GreaterThanOrEqual),
+                "==" => new(TokenType.EqualEqual),
+                "!=" => new(TokenType.NotEqual),
+                "&&" => new(TokenType.And),
+                "||" => new(TokenType.Or),
+                _ => null
+            };
+
+            if (tok is not null) return true;
+
+            // Single character logical operands
             tok = current switch
             {
-                '=' => new(TokenType.Assignment),
+                '=' => new(TokenType.Assignment), // Not a logical operand, but misfit everywhere else as well, so for the time being it's here
                 '<' => new(TokenType.LessThan),
+                '>' => new(TokenType.GreaterThan),
+                '!' => new(TokenType.Not),
                 _ => null,
             };
             return tok != null;
@@ -184,7 +211,7 @@ namespace CMe
             return tok != null;
         }
 
-        private bool GetKeyWord(out Token? tok, String str)
+        private static bool GetKeyWord(out Token? tok, String str)
         {
             tok = str switch
             {
@@ -196,17 +223,49 @@ namespace CMe
                 "double" => new(TokenType.Double),
                 "return" => new(TokenType.Return),
                 "for" => new(TokenType.For),
+                "if" => new(TokenType.If),
+                "else" => new(TokenType.Else),
                 _ => null,
             };
             return tok != null;
         }
 
-        public Token PeekNext()
+        public Token Peek()
         {
-            int savePointer = pointer;
-            Token token = NextTok();
-            pointer = savePointer;
-            return token;
+            if (cache is not null) return cache;
+            Token tok = NextTok();
+            cache = tok;
+            return tok;
+        }
+
+        private bool TrySkipComment()
+        {
+            // Single line comment...
+            if (current == '/' && pointer + 1 < source.Length && source[pointer + 1] == '/')
+            {
+                pointer += 2;
+                // Skip ahead until new line character
+                while (current != '\n' && pointer < source.Length) pointer++;
+                return true;
+            }
+            // ... or multi line comment?
+            else if (current == '/' && pointer + 1 < source.Length && source[pointer + 1] == '*')
+            {
+                pointer += 2;
+                // Skip ahead until potential end-comment sign
+                while (current != '*')
+                {
+                    if (pointer >= source.Length) throw new InvalidSyntaxException("Unfinished multi-line comment.");
+                    else if (pointer + 1 < source.Length && source[pointer + 1] == '/')
+                    {
+                        // Increment pointer to point at the last character of the comment (the ending /)
+                        pointer++;
+                        return true;
+                    }
+                    pointer++;
+                }
+            }
+            return false;
         }
     }
 }

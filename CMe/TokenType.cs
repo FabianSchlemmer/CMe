@@ -17,14 +17,24 @@
         // Binary Operators
         // Arithmetic
         Plus,
+        Minus,
         Times,
+        Divide,
 
         // Logical
         LessThan,
+        LessThanOrEqual,
         EqualEqual,
+        NotEqual,
+        GreaterThan,
+        GreaterThanOrEqual,
+        And,
+        Or,
+        Not,
 
         // Unary Operators
         PlusPlus,
+        MinusMinus,
 
         // Literals
         LiteralInt,
@@ -42,5 +52,7 @@
         TypeDef,
         Return,
         For,
+        If,
+        Else,
     }
 }
